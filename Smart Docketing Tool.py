@@ -235,7 +235,7 @@ court_code_dict = {
     'H84': 'Boston Housing Court',
     'H85': 'Worcester Housing Court',
     'ES' : 'Essex Probate and Family Court',
-    'BA' : 'Barnsatble Probate and Family Court',
+    'BA' : 'Barnstable Probate and Family Court',
     'BE' : 'Berkshire Probate and Family Court',
     'BR' : 'Bristol Probate and Family Court',
     'DU' : 'Dukes Probate and Family Court',
@@ -533,7 +533,8 @@ while True:
                 print('Goodbye')
                 break
         elif double_check(court_name, case_type) is True:
-            print('why')
+            print('PLACEHOLDER')
+            # PLACEHOLDER
         elif double_check(court_name, case_type) is False:
             repeat = input('The {} does not hear {} cases. '.format(
                             court_name, case_type) +
