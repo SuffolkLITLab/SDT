@@ -403,8 +403,11 @@ def y_input(ydict):
                     return testans
                     break
             else:
+                ans_input = ans_input.title()
                 generic = ['Superior', 'District', 'Housing', 'Probate',
-                           'Family', 'Probate and Family', 'Court', 'County']
+                           'Family', 'Probate and Family', 'Court', 'County',
+                           'Sup.', 'Dist.', 'Ct.', 'Cty.', 'Cnty.',
+                           'Sup', 'Dist', 'Ct', 'Cty', 'Cnty']
                 for gen in generic:
                     ans_input = ans_input.replace(gen, '').strip()
                     # ^^^ is there a better way
