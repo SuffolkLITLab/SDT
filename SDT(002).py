@@ -371,7 +371,7 @@ def identify_year(docket_number):
     case_year = find_case_year_re.search(docket_number).group()
     if 'SBQ' in docket_number.upper():
         # .upper() redundant if in input.upper()
-        pass # PLACEHOLDER
+        pass # PLACEHOLDER for identifying month and returning month, year
     else:
         if not case_year:
             return None
@@ -379,6 +379,8 @@ def identify_year(docket_number):
         else:
             if case_year <= time.strftime('%y'):
                 return time.strftime('%Y')[:2] + case_year
+            else:
+                pass # PLACEHOLDER for if identifed year is in the future
 
 def identify_case_sequence_number(docket_number):
     sequence_number = find_case_sequence_number_re.search(docket_number).group()
