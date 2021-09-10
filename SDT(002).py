@@ -393,7 +393,17 @@ def identify_case_sequence_number(docket_number):
         # docket_number is missing sequence number
     else:
         return sequence_number
+    
+def is_it_in_proper_format(docket_number):
+    if check_proper_format_re.match(docket_number):
+        return True
+    else:
+        return False
 
+# Below is starting to deal with situations where the input is not
+# one of the expected docket-number formats. It only addresses
+# spaces, hyphens, and punctuations that should not be there
+# Remove if handling those situations in another way.
 def remove_hyphens_and_spaces(docket_number):
     for key in land_court_case_type_code_dict:
         # Remember: currently does not pick up non-exact case type codes
@@ -406,8 +416,8 @@ def remove_hyphens_and_spaces(docket_number):
                 stripped_dkt_number = re.sub(r'[^\w\s-]', '', stripped_dkt_number)
                 find_hyphens = re.findall(r'-', stripped_dkt_number)
                 # Match and replace two or more spaces with one, and strip,
-                # match and remove any non-word characters except hyphens,
-                # match and return list of all the hyphens
+                # match and remove any non-word characters except hyphens and
+                # spaces, then match and return list of all the hyphens
                 if len(find_hyphens) > 1:
                     extra_hyphen_removed = re.sub(r'-(?![0-9]+$)','',
                                                   stripped_dkt_number)
@@ -415,8 +425,10 @@ def remove_hyphens_and_spaces(docket_number):
                     # the sequence number, e.g. the hyphen between '09 and
                     # '001' in '21 SBQ 00001 09-001'
                     return extra_hyphen_removed
+                    break
                 elif len(find_hyphens) == 1:
                     return stripped_dkt_number
+                    break
                 else:
                     pass # PLACEHOLDER
                     # Hyphen missing before sequence number; this acts as
