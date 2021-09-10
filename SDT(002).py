@@ -331,7 +331,6 @@ def identify_court_name(docket_number):
         for key in land_court_case_type_code_dict:
             if key in docket_number:
                 return 'Land Court'
-                break
                 # docket_number is missing court code but court is land court
                 # and land-court docket numbers do not include court codes so the
                 # entered docket_number is still okay
@@ -345,7 +344,6 @@ def identify_court_name(docket_number):
         for key in court_name_code_dict:
             if key == court_code:
                 return court_name_code_dict[key]
-                break
         else:
             return None
             # docket_number has incorrect (not missing) court code
@@ -364,12 +362,10 @@ def identify_case_type(docket_number):
             for key in probate_family_court_case_type_code_dict:
                 if key == case_type_code:
                     return probate_family_court_case_type_code_dict[key]
-                    break
         else:
             for key in court_case_type_code_dict:
                 if key == case_type_code:
                     return court_case_type_code_dict[key]
-                    break
         
 def identify_year(docket_number):
     case_year = find_case_year_re.search(docket_number).group()
@@ -425,21 +421,17 @@ def remove_hyphens_and_spaces(docket_number):
                     # the sequence number, e.g. the hyphen between '09 and
                     # '001' in '21 SBQ 00001 09-001'
                     return extra_hyphen_removed
-                    break
                 elif len(find_hyphens) == 1:
                     return stripped_dkt_number
-                    break
                 else:
                     pass # PLACEHOLDER
                     # Hyphen missing before sequence number; this acts as
                     # initial is_it_in_proper_format for SBQ cases
-                break
             else:
                 stripped_dkt_number = re.sub(r'[^\w\s]', '', docket_number)
                 stripped_dkt_number = re.sub(r'\s{2,}', ' ',
                                              stripped_dkt_number).strip()
                 return stripped_dkt_number
-                break
                 # Match and remove any non-word characters but not spaces
                 # then replace two or more spaces with one, then strip
     else:
