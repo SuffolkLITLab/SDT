@@ -339,7 +339,8 @@ def identify_court_name(docket_number):
             # docket_number is missing court code: the entered docket_number is
             # not okay; this would be where another inquiry and a drop-down menu
             # or a combo-box would be added later for non-standard variations or
-            # just incorrectly entered docket numbers
+            # just incorrectly entered docket numbers. As it is now, because
+            # the check_proper_format_re is rigid, this else is unnecessary.
     else:
         for key in court_name_code_dict:
             if key == court_code:
@@ -351,13 +352,17 @@ def identify_court_name(docket_number):
 def identify_case_type(docket_number):
     case_type_code = find_case_type_code_re.search(docket_number).group()
     if not case_type_code:
-        # docket_number is missing case-type code; input error or variation
+        # docket_number is missing case-type code; input error or variation. As
+        # it is now, because the check_proper_format_re is rigid, this is not
+        # necessary
         return None
     else:
         court_name = identify_court_name(docket_number)
         if not court_name:
             return None
-            # Error
+            # docket_number is missing or has incorrect court code. As it is
+            # now, because the check_proper_format_re is rigid, this if not
+            # is unnecessary
         elif 'Probate' in court_name:
             for key in probate_family_court_case_type_code_dict:
                 if key == case_type_code:
@@ -386,7 +391,8 @@ def identify_case_sequence_number(docket_number):
     sequence_number = find_case_sequence_number_re.search(docket_number).group()
     if not sequence_number:
         return None
-        # docket_number is missing sequence number
+        # docket_number is missing sequence number. As it is now, because
+        # check_proper_format_re is rigid, this is unnecessary.
     else:
         return sequence_number
     
