@@ -295,14 +295,17 @@ find_court_code_re = re.compile(r'(?<=\d{2})(\d{2}|H\d{2})(?=[A-Z](?!$))|'
 # Match two digits or two digits with prefix 'H' that are preceded by two digits
 # and followed by a letter that is not at the end of the string, i.e., not a
 # local note. Flag is re.IGNORECASE (redundant if input.upper()).
+# Note land-court docket numbers do not include a court code, and the
+# identify_court_name(docket_number) function identifies whether the court is
+# land court or not separately from the regular expression matching.
 
-find_case_type_code_re = re.compile(r'(?<!^)[A-Z]{2}', re.I)
-# Match two letters that are not at the start of the string, i.e., not a probate
-# and family court case.
+find_case_type_code_re = re.compile(r'(?<!^)[A-Z]{2,4}', re.I)
+# Match two to four letters that are not at the start of the string, i.e., not 
+# a probate and family court case.
 
-find_case_year_re = re.compile(r'\d{2}(?=[A-Z]\d|\d{2}[A-Z]{2}(?!$)|\W)', re.I)
+find_case_year_re = re.compile(r'\d{2}(?=[A-Z]\d|\d{2}[A-Z]{2}(?!$)|\s)', re.I)
 # Match two digits that precede a single letter plus two digits, two digits plus
-# two letters not at the end of the string, or non-word character.
+# two letters not at the end of the string, or space.
 
 find_case_sequence_number_re = re.compile(r'\d{2,}(?=$|[A-Z]+$)', re.I)
 # Match two or more digits that are at the end of the string or are followed by
@@ -316,9 +319,10 @@ check_proper_format_re = re.compile(r'\d{4}[A-Z]{2}\d{1,6}$|'
 # leading 0s not included, it does not accept any other variations such as
 # incomplete docket numbers, e.g. '21-1234' or non-exact case-type codes, e.g.
 # '1277Civ01234'. While writing case type like the latter is sometimes seen
-# in other courts, I have not yet found a Massachusetts state court using that
+# in other courts, I have not yet found a Massachusetts stat e court using that
 # convention. But note: I have not had much success accessing files for cases
 # in courts other than superior courts.
+# Use [a-zA-Z]{2,} to match for non-exact case-type codes.
 
 def identify_court_name(docket_number):
     court_code = find_court_code_re.search(docket_number).group()
@@ -390,10 +394,44 @@ def identify_case_sequence_number(docket_number):
     else:
         return sequence_number
 
-def is_it_in_proper_format(docket_number):
-    if check_proper_format_re.match(docket_number):
-        return True
+def remove_hyphens_and_spaces(docket_number):
+    for key in land_court_case_type_code_dict:
+        # Remember: currently does not pick up non-exact case type codes
+        # and land-court docket numbers have and should maintain spaces
+        if key in docket_number:
+            if key == 'SBQ':
+            # SBQ cases do and should maintain one hyphen before seq. number
+                stripped_dkt_number = re.sub(r'\s{2,}', ' ',
+                                             docket_number).strip()
+                stripped_dkt_number = re.sub(r'[^\w\s-]', '', stripped_dkt_number)
+                find_hyphens = re.findall(r'-', stripped_dkt_number)
+                # Match and replace two or more spaces with one, and strip,
+                # match and remove any non-word characters except hyphens,
+                # match and return list of all the hyphens
+                if len(find_hyphens) > 1:
+                    extra_hyphen_removed = re.sub(r'-(?![0-9]+$)','',
+                                                  stripped_dkt_number)
+                    # Match and remove hyphens except the hyphen preceding
+                    # the sequence number, e.g. the hyphen between '09 and
+                    # '001' in '21 SBQ 00001 09-001'
+                    return extra_hyphen_removed
+                elif len(find_hyphens) == 1:
+                    return stripped_dkt_number
+                else:
+                    pass # PLACEHOLDER
+                    # Hyphen missing before sequence number; this acts as
+                    # initial is_it_in_proper_format for SBQ cases
+                break
+            else:
+                stripped_dkt_number = re.sub(r'[^\w\s]', '', docket_number)
+                stripped_dkt_number = re.sub(r'\s{2,}', ' ',
+                                             stripped_dkt_number).strip()
+                return stripped_dkt_number
+                break
+                # Match and remove any non-word characters but not spaces
+                # then replace two or more spaces with one, then strip
     else:
-        return False
-
+        stripped_dkt_number = re.sub(r'[^\w]', '', docket_number)
+        return stripped_dkt_number
+                
 # docket_number = input()
