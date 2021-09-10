@@ -313,8 +313,8 @@ find_case_sequence_number_re = re.compile(r'\d{2,}(?=$|[A-Z]+$)', re.I)
 
 check_proper_format_re = re.compile(r'\d{4}[A-Z]{2}\d{1,6}$|'
                                     r'\d{2}H\d{2}[A-Z]{2}\d{1,6}$|'
-                                    r'\d{2}\s[A-Z]{2,4}\s\d{1,6}($|\s\d{2}-\d+$)|'
-                                    r'[A-Z]{2}\d{2}[A-Z]\d+[A-Z]{2}$', re.I)
+                                    r'\d{2}\s[A-Z]{2,4}\s\d{1,6}(?:$|\s\d{2}-\d+$)
+                                    r'|[A-Z]{2}\d{2}[A-Z]\d+[A-Z]{2}$', re.I)
 # While this accepts situations where the sequence number is truncated, e.g.,
 # leading 0s not included, it does not accept any other variations such as
 # incomplete docket numbers, e.g. '21-1234' or non-exact case-type codes, e.g.
@@ -441,7 +441,7 @@ def remove_hyphens_and_spaces(docket_number):
                 # Match and remove any non-word characters but not spaces
                 # then replace two or more spaces with one, then strip
     else:
-        stripped_dkt_number = re.sub(r'[^\w]', '', docket_number)
+        stripped_dkt_number = re.sub(r'\W', '', docket_number)
         return stripped_dkt_number
                 
 # docket_number = input()
