@@ -1,108 +1,170 @@
-# Smart Docketing Tool (002)
+# Smart Docketing Tool (003)
 #
-# Note: Juvenile Court not included. And I had difficulty accessing case documents
-# for courts other than superior court, so possible variations in, e.g., district
-# courts are unknown. Still, they are very likely to be similar to superior-court
-# variations.
+# Note: Juvenile Court not included. 
 #
 # TO DO:
 #   - Add appellate court docket-number format, incl. supreme court.
 #   - Address local notes
 #
-# DOCKET-NUMBER FORMATS
+# DOCKET-NUMBER FORMATS (STANDARD)
 #
-# 1. Superior Court         Example: 1577CV00982
-# docket_number[0:1] is the case's filing year 
-# docket_number[2:3] is the court code
-# docket_number[4:5] is the case-type code
-# docket_number[6:10] is the 5-digit sequence number
+#   1.  Superior Court         Example: 1577CV00982
 #
-# 2. District Court         Example: 1670CV000072
-# docket_number[0:5] is the same as in the superior-court format.
-# docket_number[6:11] is the 6-digit sequence number
+#       docket_number[0:1] is the case's filing year 
+#       docket_number[2:3] is the court code
+#       docket_number[4:5] is the case-type code
+#       docket_number[6:10] is the 5-digit sequence number
 #
-# 3. Boston Municipal Court Example: 1401CV001026
-# BMC docket-number format is the same as the district-court format.
+#   2.  District Court         Example: 1670CV000072
 #
-# 4. Housing Court          Example: 15H84CV000436
-# docket_number[0:1] is the case's filing year 
-# docket_number[2:4] is the court code
-# docket_number[5:6] is the case-type code
-# docket_number[7:12] is the 6-digit sequence number
+#       docket_number[0:5] is the same as in the superior-court format.
+#       docket_number[6:11] is the 6-digit sequence number
 #
-# 5. Land Court             Example: 07 TL 001026
-# LC docket-number format is the same as the district-court format, except
-# LC docket numbers do not have a court code, and the filing year, case-type
-# code, and the 6-digit sequence number are each separated by a space.
+#   3.  Boston Municipal Court Example: 1401CV001026
 #
-# The subsequent (SBQ) land-court case type, however, has a unique docket-number
-# format.                   Example: 15 SBQ 00025 09-001
-# docket_number[0:6] is the same as in other land-court case types
-# docket_number[7:11] is the 5-digit plan number
-# docket_number[13:14] is the case's filing month
-# docket_number[16:] is the sequence number (likely 3 digits)
+#       BMC docket-number format is the same as the district-court format.
 #
-# 6. Probate and Family     Example: ES15A0064AD
-# docket_number[0:1] is the site or court code
-# docket_number[2:3] is the case's filing year
-# docket_number[4] is the case-group code
-# docket_number[5:8] is the 4-digit sequence number
-# docket_number[9:10] is the case-type code
+#   4.  Housing Court          Example: 15H84CV000436
+#
+#       docket_number[0:1] is the case's filing year 
+#       docket_number[2:4] is the court code
+#       docket_number[5:6] is the case-type code
+#       docket_number[7:12] is the 6-digit sequence number
+#
+#   5.  Land Court             Example: 07 TL 001026
+#
+#       LC docket-number format is the same as the district-court format, except
+#       without a court code, and the filing year, case-type code, and the
+#       6-digit sequence number are each separated by a space.
+#
+#       NOTE: The subsequent (SBQ) land-court case type, however, has a
+#       unique format. Example: 15 SBQ 00025 09-001
+#       docket_number[0:6] is the same as in other land-court case types
+#       docket_number[7:11] is the 5-digit plan number
+#       docket_number[13:14] is the case's filing month
+#       docket_number[16:] is the sequence number (likely 3 digits)
+#
+#   6.  Probate and Family     Example: ES15A0064AD
+#
+#       docket_number[0:1] is the site or court code
+#       docket_number[2:3] is the case's filing year
+#       docket_number[4] is the case-group code
+#       docket_number[5:8] is the 4-digit sequence number
+#       docket_number[9:10] is the case-type code
+#
+#       I'm not entirely sure what the probate and family court case group adds,
+#       as the case type already tells us all the information that the case group
+#       would provide. If we can figure out the case group for each case type,
+#       this could be used to verify the input docket number. For example, the
+#       docket number 'ES00A0000XY' should raise an error, because the docket num-
+#       ber tell us that the case TYPE is 'Proxy Guardianship' ('XY') but that
+#       the case GROUP is 'Adoption' ('A') instead of 'Proxy Guardianship' ('X').
 #
 # VARIATIONS
 #
-# The format is not a requirement. This can often mean multiple docket-number
-# variations in a single case. For example, in SpineFrontier v. Cummings Props.,
-# a case in Essex County Superior Court, we see six:
-#   (1) 1577-CV-00982   in the defendant's motion
-#   (2) 15-0982         in the defendant's amended counterclaim
-#   (3) 15-CV-00982     in the plaintiff's notice of cross-appeal
-#   (4) 2015-982        in the court's final-judgment order
-#   (5) 2015-00982      in the court's ruling on MSJ
-#   (6) 1577CV00982     in the appellate court's notice
+#   The format is not a requirement. From one case to another, or even within a
+#   the same case, we will see docket numbers that do not follow the above
+#   standard formats.
 #
-# Variations in superior-court cases seen so far:
-#   1984CV02199     YearCourtTypeSequence   Standard
-#   2082-00735      YearCourt-Sequence      
-#   1777-1298       YearCourt-Sequence      Excl. leading 0
-#   20 0735         Year Sequence           Incl. only one leading 0
-#   15-0982         Year-Sequence           Incl. only one leading 0
-#   2015-00982      FullYear-Sequence
-#   2015-982        FullYear-Sequence       Excl. leading 0
-#   1577-CV-00982   YearCourt-Type-Sequence 
-#   15-CV-00982     Year-Type-Sequence
-#   
-# Other possible variations: 21CV01234, 21CV1234, 21-01234, 21-1234
+#   NOTE: I was able to find uploaded case filings only for superior-court cases,
+#   so the list of variations below, except for superior-court variations, assumes
+#   that other courts follow similar logic in abbreviating or varying the standard
+#   docket-number format. The assumption most definitely stands for district, BMC,
+#   and housing courts, as these courts share the same format as superior courts.
+#
+#   1.  Legend for #2 and #3 lists, below:
+#
+#       'YY' or 'YYYY'  : 2-digit or 4-digit year, e.g., 21 or 2021
+#
+#       'CC' or 'hCC'   : 2-character court code, which can be letters only (e.g.,
+#                         ES for Essex Probate and Family Ct.), numbers only
+#                         (e.g., 77 for Essex Cty. Super. Ct.), or two digits with
+#                         prefix 'H' for housing courts. As mentioned, land-court
+#                         docket numbers do not have court codes.
+#
+#       'TT'            : 2-letter case-type code, e.g., CV for Civil, or 2- to 4-
+#                         letter case-type code for land court.
+#
+#       'N'             : Sequence number, e.g., 00001 for the first case in that
+#                         court of that year and of that case type. The length
+#                         varies between courts and leading 0s are sometimes
+#                         removed entirely or all but one.
+#
+#       'G'             : 1-letter case-group code, applies only to Probate and
+#                         Family Ct. 
+#
+#   2.  Standard formats, using above abbreviations:
+#
+#       · YYCCTTN+        Super. Ct., Dist. Ct., BMC
+#       · YYhCCN+         Housing Ct. Below, I'll just add '/ hCC'
+#       · YY TT N+        Land Ct., except SBQ cases
+#       · YY SBQ P+ MM-N+ Land Ct., SBQ cases, P is Plan Number, MM is Month
+#       · CCYYGN+TT       Probate and Family Court, G is case-group code
+#       
+#   3.  Variations other than standard format:
+#
+#       · YYCC-N+ / hCC     Super. Ct., Dist. Ct., BMC / Housing Ct.
+#       · YY N+             ALL
+#       · YY-N+             ALL
+#       · YYYY-N+           ALL
+#       · YYCC-TT-N+ / hCC  Super. Ct., Dist. Ct., BMC / Housing Ct.
+#       · YY-TT-N+          ALL
+#       · YYTTN+            ALL
+#       · CCYY-(G)N+        Probate and Family Ct. with or without case-group code
+#       · CCTTYY-(G)N+      Probate and Family Ct. with or without case-group code
+#
+#   4.  EXAMPLE, variations in practice:
+#
+#       In SpineFrontier, Inc. v. Cummings Props. LLC, No. 1577CV00982 (Essex Cty.
+#       Super. Ct.), in that single case, we see six docket-number variations
+#       being used:
+#
+#           (1) 1577-CV-00982   in the defendant's motion
+#           (2) 15-0982         in the defendant's amended counterclaim
+#           (3) 15-CV-00982     in the plaintiff's notice of cross-appeal
+#           (4) 2015-982        in the court's final-judgment order
+#           (5) 2015-00982      in the court's ruling on MSJ
+#           (6) 1577CV00982     in the appellate court's notice
 #
 # LOCAL NOTES
 #
-# Local notes are sometimes added to the docket number. For example, in superior
-# courts, civil cases on specific case-management schedules will have the
-# relevant track designations suffixed to the docket number. The three
-# designations are Average Track ("A"), Fast Track ("F"),and Accelerated Track
-# ("X"). There are other local notes, e.g. Business Litigation Session ("BLS").
-# Some courts may include the presiding judge's initials as local notes.
+#   Local notes are sometimes added to the docket number. For example, in superior
+#   courts, civil cases on specific case-management schedules will have the
+#   relevant track designations suffixed to the docket number. The three
+#   designations are Average Track ('A'), Fast Track ('F'),and Accelerated Track
+#   ('X'). There are other local notes, e.g., Business Litigation Session ('BLS').
+#   Some courts may include the presiding judge's initials as local notes.
+#
+#   Only the case-management track designations appear to provide information
+#   useful for pro se litigants. The other notes aid clerks of the court.
 #
 # OTHER CONSIDERATIONS
 #
-# Because of the nature and age of the courts' physical stamps,
-# court-stamped documents are unlikely to have standardized docket numbers.
-# For example, in Costello v. Needham Bank, Suffolk County Superior Court,
-# the court-stamped civil-action cover sheet has "20 0735" stamped as the
-# docket number. 
-# 
-# Notably (and oddly), the masscourts.org case search engine will return
-# with "No Matches Found" if the docket number is not strictly entered in
-# the standardized format, including all the leading 0s.
+#   Because of the nature and age of the courts' physical stamps, court-stamped
+#   documents are unlikely to have standardized docket numbers. This is
+#   most relevant at the initial stage of a case, where pro se litigants only
+#   have court-stamped civil-action cover sheet returned from the court after
+#   filing a case or received from the plaintiff along with the complaint.
+#   For example, in Costello v. Needham Bank, the court-stamped civil-action
+#   cover sheet has "20 0735" stamped as the docket number. 
 #
-# CASE-TYPE CODE DICTIONARIES
+# ONLINE CASE ACCESS
 #
-# The 'AD' case-type code in BMC and district courts refers to 'Appeal' but
-# 'Adoption' in probate and family courts. Because of dict key restrictions,
-# the case-type codes for probate and family courts are in a separate dictionary.
-# Land court case-type codes are also in their own dictionary for checking if
-# the docket number is erroneously missing a court code or if the court code
-# is missing because it is a case in the land court.
+#   Case information and sometimes (rarely, it seems) uploaded PDFs of case
+#   filings can be found at masscourts.org.
+#
+#   Notably (and oddly), the search engine will return with "No Matches Found"
+#   if the docket number is not strictly entered in the standardized format,
+#   including all the leading 0s.
+#
+# NOTES ON BELOW CASE-TYPE CODE DICTIONARIES
+#
+#   The 'AD' case-type code in BMC and district courts refers to 'Appeal' but
+#   'Adoption' in probate and family courts. Because of dict key restrictions,
+#   the case-type codes for probate and family courts are in a separate dictionary.
+#   Land court case-type codes are also in their own dictionary for checking if
+#   the docket number is erroneously missing a court code or if the court code
+#   is missing because it is a case in the land court.
 
 court_case_type_code_dict = {
     'AC' : 'Application for Criminal Complaint',
@@ -160,14 +222,6 @@ probate_family_court_case_type_code_dict = {
     'WD' : 'Paternity',
     'XY' : 'Proxy Guardianship'
 }
-
-# I'm not entirely sure what the probate and family court case group adds, as
-# the case type already tells us all the information that the case group would
-# provide. If we can figure out the case group for each case type, this could
-# be used to verify the input docket number. For example, the docket number
-# 'ES00A0000XY' should raise an error: the docket number tell us that the case
-# type is 'Proxy Guardianship' ('XY') and that the case group is 'Adoption' ('A'),
-# which is not the right case group.
 
 probate_family_court_case_group_code_dict = {
     'A' : 'Adoption',
@@ -292,20 +346,25 @@ import time
 
 find_court_code_re = re.compile(r'(?<=\d{2})(\d{2}|H\d{2})(?=[A-Z](?!$))|'
                                 r'^[A-Z]{2}(?=\d)', re.I)
+# NEEDS REVISION for variation.
 # Match two digits or two digits with prefix 'H' that are preceded by two digits
 # and followed by a letter that is not at the end of the string, i.e., not a
-# local note. Flag is re.IGNORECASE (redundant if input.upper()).
+# local note. Flag is re.IGNORECASE.
+#
 # Note land-court docket numbers do not include a court code, and the
 # identify_court_name(docket_number) function identifies whether the court is
-# land court or not separately from the regular expression matching.
+# land court or not separately from this regular-expression matching.
 
 find_case_type_code_re = re.compile(r'(?<!^)[A-Z]{2,4}', re.I)
+# NEEDS REVISION for variation.
 # Match two to four letters that are not at the start of the string, i.e., not 
 # a probate and family court case.
 
-find_case_year_re = re.compile(r'\d{2}(?=[A-Z]\d|\d{2}[A-Z]{2}(?!$)|\s)', re.I)
-# Match two digits that precede a single letter plus two digits, two digits plus
-# two letters not at the end of the string, or space.
+find_case_year_re = re.compile(r'((?:^)|(?:[A-Z]{2}))\d{2}(?=(?:\d{2}[A-Z]{2})|'
+                               r'(?:\s)|(?:-)|(?:[A-Z]+\d)|(?:\d{2}(?:\s|-)))',
+                               re.I)
+# REVISED to catch variations, except it does not account for YYYY-N+, instead
+# assumes that variation is actually YYCC-N+
 
 find_case_sequence_number_re = re.compile(r'\d{2,}(?=$|[A-Z]+$)', re.I)
 # Match two or more digits that are at the end of the string or are followed by
@@ -315,14 +374,7 @@ check_proper_format_re = re.compile(r'\d{4}[A-Z]{2}\d{1,6}$|'
                                     r'\d{2}H\d{2}[A-Z]{2}\d{1,6}$|'
                                     r'\d{2}\s[A-Z]{2,4}\s\d{1,6}(?:$|\s\d{2}-\d+$)
                                     r'|[A-Z]{2}\d{2}[A-Z]\d+[A-Z]{2}$', re.I)
-# While this accepts situations where the sequence number is truncated, e.g.,
-# leading 0s not included, it does not accept any other variations such as
-# incomplete docket numbers, e.g. '21-1234' or non-exact case-type codes, e.g.
-# '1277Civ01234'. While writing case type like the latter is sometimes seen
-# in other courts, I have not yet found a Massachusetts stat e court using that
-# convention. But note: I have not had much success accessing files for cases
-# in courts other than superior courts.
-# Use [a-zA-Z]{2,} to match for non-exact case-type codes.
+# REWRITE patterns
 
 def identify_court_name(docket_number):
     court_code = find_court_code_re.search(docket_number).group()
@@ -342,9 +394,8 @@ def identify_court_name(docket_number):
             # just incorrectly entered docket numbers. As it is now, because
             # the check_proper_format_re is rigid, this else is unnecessary.
     else:
-        for key in court_name_code_dict:
-            if key == court_code:
-                return court_name_code_dict[key]
+        if court_code in code_name_code_dict:
+            return court_name_code_dict[court_code]
         else:
             return None
             # docket_number has incorrect (not missing) court code
@@ -395,53 +446,75 @@ def identify_case_sequence_number(docket_number):
         # check_proper_format_re is rigid, this is unnecessary.
     else:
         return sequence_number
-    
-def is_it_in_proper_format(docket_number):
-    if check_proper_format_re.match(docket_number):
+
+def is_it_in_proper_format(clean_dkt_number):
+    if check_proper_format_re.match(clean_dkt_number):
         return True
     else:
         return False
 
-# Below is starting to deal with situations where the input is not
-# one of the expected docket-number formats. It only addresses
-# spaces, hyphens, and punctuations that should not be there
-# Remove if handling those situations in another way.
 def remove_hyphens_and_spaces(docket_number):
+    # First, check if the entered docket number is a land-court docket number,
+    # which should have spaces and, in SBQ, a hyphen.
     for key in land_court_case_type_code_dict:
-        # Remember: currently does not pick up non-exact case type codes
-        # and land-court docket numbers have and should maintain spaces
-        if key in docket_number:
+        if key in docket_number.upper():
             if key == 'SBQ':
-            # SBQ cases do and should maintain one hyphen before seq. number
-                stripped_dkt_number = re.sub(r'\s{2,}', ' ',
+                # Replace two or more spaces with one space, strip, then remove
+                # everything except letters, numbers, spaces, and hyphens, i.e.,
+                # all punctuations other than hyphens, and lastly, find all the
+                # hyphens and return with list
+                remove_extra_spaces = re.sub(r'\s{2,}', ' ',
                                              docket_number).strip()
-                stripped_dkt_number = re.sub(r'[^\w\s-]', '', stripped_dkt_number)
-                find_hyphens = re.findall(r'-', stripped_dkt_number)
-                # Match and replace two or more spaces with one, and strip,
-                # match and remove any non-word characters except hyphens and
-                # spaces, then match and return list of all the hyphens
+                remove_punctuations = re.sub(r'[^\w\s-]', '', remove_extra_spaces)
+                find_hyphens = re.findall(r'-', remove_punctuations)
                 if len(find_hyphens) > 1:
-                    extra_hyphen_removed = re.sub(r'-(?![0-9]+$)','',
-                                                  stripped_dkt_number)
-                    # Match and remove hyphens except the hyphen preceding
-                    # the sequence number, e.g. the hyphen between '09 and
-                    # '001' in '21 SBQ 00001 09-001'
-                    return extra_hyphen_removed
+                    # If there are more than one hyphen, remove all except the
+                    # hyphen separating month and sequence number
+                    extra_hyphen_removed = re.sub(r'-(?!\d+$)','',
+                                                  remove_punctuations)
+                    clean_dkt_number = extra_hyphen_removed
+                    return clean_dkt_number
                 elif len(find_hyphens) == 1:
-                    return stripped_dkt_number
+                    clean_dkt_number = remove_punctuations
+                    return clean_dkt_number
                 else:
-                    pass # PLACEHOLDER
-                    # Hyphen missing before sequence number; this acts as
-                    # initial is_it_in_proper_format for SBQ cases
+                # The hyphen between month and sequence number is missing in SBQ
+                # docket number, so add
+                add_missing_hyphen = re.sub(r'(?<=\s\d{2})\s(?=\d+$)', '-'
+                                            remove_punctuations)
+                clean_dkt_number = add_missing_hyphen
+                return clean_dkt_number
             else:
-                stripped_dkt_number = re.sub(r'[^\w\s]', '', docket_number)
-                stripped_dkt_number = re.sub(r'\s{2,}', ' ',
-                                             stripped_dkt_number).strip()
-                return stripped_dkt_number
-                # Match and remove any non-word characters but not spaces
-                # then replace two or more spaces with one, then strip
+                # For other land-court cases, replace two or more spaces with one,
+                # strip, then remove everything except letters, numbers, and
+                # spaces, i.e., all punctuations
+                remove_extra_spaces = re.sub(r'\s{2,}', ' ',
+                                             docket_number).strip()
+                remove_punctuations = re.sub(r'[^\w\s]', '', remove_extra_spaces)
+                clean_dkt_number = remove_punctuations
+                return clean_dkt_number
     else:
-        stripped_dkt_number = re.sub(r'\W', '', docket_number)
-        return stripped_dkt_number
-                
-# docket_number = input()
+    # Otherwise, check first whether the input is a docket-number variation with
+    # a hyphen or space that separates numbers. In all these variations, the
+    # preceding digits are 2- or 4-digits. Sometimes, the two-digit number may
+    # be preceded by letter codes. These should not be removed.
+        try:
+            is_hyphen_space_variation = re.search(r'(?:\d{2,4}|[A-Z]\d{2})'
+                                                  r'(-|\s)(?=\d+)',
+                                                  docket_number).group(1)
+            # If it is a variation, remove all other punctuations and spaces that
+            # should not be there
+            if is_hyphen_space_variation == '-':
+                pass # PLACEHOLDER: write pattern for everything but that hyphen
+                     # to remove
+            else:
+                pass # PLACEHOLDER: write pattern for everything but that space
+                     # to remove
+        except:
+        # If it is not one of those variations, clean up docket number
+            remove_non_word_characters = re.sub(r'\W', '', docket_number)
+            clean_dkt_number = remove_non_word_characters
+            return clean_dkt_number
+
+# For testing:
+# docket_number = input('Enter docket number: ')
