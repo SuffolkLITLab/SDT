@@ -1,4 +1,4 @@
-# Smart Docketing Tool (Updated: 9/11, 10PM ET)
+# Smart Docketing Tool (Updated: 9/11, 10:30PM ET)
 #
 # Note: Juvenile Court not included. 
 #
