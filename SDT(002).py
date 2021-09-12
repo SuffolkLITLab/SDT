@@ -1,4 +1,4 @@
-# Smart Docketing Tool (002) (Updated 9/11, 12:11AM ET)
+# Smart Docketing Tool (003) (Updated 9/12, 4:30PM ET)
 #
 # Note: Juvenile Court not included. 
 #
@@ -104,14 +104,15 @@
 #   3.  Variations other than standard format:
 #
 #       · YYCC-N+ / hCC     Super. Ct., Dist. Ct., BMC / Housing Ct.
+#       · YYYY-N+           ALL
 #       · YY N+             ALL
 #       · YY-N+             ALL
 #       · YYYY-N+           ALL
-#       · YYCC-N+           ALL
 #       · YYCC-TT-N+ / hCC  Super. Ct., Dist. Ct., BMC / Housing Ct.
 #       · YY-TT-N+          ALL
 #       · YYTTN+[*]         ALL
 #       · TTYY-N+[*]        ALL
+#       · TTYYCC-N+[*]      Super. Ct., Dist. Ct., BMC / Housing Ct.
 #       · CCYY-(G)N+[*]     Probate Family Ct. with or without case-group code
 #       · CCTTYY-(G)N+[*]   Probate Family Ct. with or without case-group code
 #
@@ -352,36 +353,32 @@ court_name_code_dict = {
 import re
 import time
 
-find_court_code_re = re.compile(r'(?<=\d{2})(\d{2}|H\d{2})(?=[A-Z](?!$))|'
-                                r'^[A-Z]{2}(?=\d)', re.I)
-# NEEDS REVISION for variation.
-# Match two digits or two digits with prefix 'H' that are preceded by two digits
-# and followed by a letter that is not at the end of the string, i.e., not a
-# local note. Flag is re.IGNORECASE.
-#
-# Note land-court docket numbers do not include a court code, and the
-# identify_court_name(docket_number) function identifies whether the court is
-# land court or not separately from this regular-expression matching.
+find_court_code_re = re.compile(r'(?<=^\d{2})(\d{2}|H\d{2})(?!$)(?=((?:[A-Z]{2}'
+                                r'(?!$)|-|\s)(?![A-Z]+$)))|^[A-Z]{2}', re.I)
+# This regular-expression pattern does not handle the following variations:
+#   · YYYY-N+           ALL     [Takes YYYY-N+ as YYCC-N+]
+#   · TTYY-N+[*]        ALL     [Takes as CCYY-N+ Probate and Family Ct.]
+#   · TTYYCC-N+[*]      Super. Ct., Dist. Ct., BMC / Housing Ct.
+#   [*] denotes the hypothetical variations
+# Flag is re.IGNORECASE.
 
 find_case_type_code_re = re.compile(r'(?<!^)[A-Z]{2,4}', re.I)
-# NEEDS REVISION for variation.
-# Match two to four letters that are not at the start of the string, i.e., not 
-# a probate and family court case.
+# This regular-expression pattern does not handle situations where the case-type
+# code is entered in any format other than 2-letter format
 
-find_case_year_re = re.compile(r'((?:^)|(?:[A-Z]{2}))\d{2}(?=(?:\d{2}[A-Z]{2})|'
-                               r'(?:\s)|(?:-)|(?:[A-Z]+\d)|(?:\d{2}(?:\s|-)))',
-                               re.I)
-# REVISED to catch variations, except it does not account for YYYY-N+, instead
-# assumes that variation is actually YYCC-N+
+
+find_case_year_re = re.compile(r'((?<=^)|(?<=[A-Z]{2}))\d{2}(?=\d{2}[A-Z]{2}|'
+                               r'\s|-|[A-Z]+\d|\d{2}(?=\s|-))', re.I)
+# This pattern does not account for YYYY-N+ variation and instead takes that
+# variation as YYCC-N+
 
 find_case_sequence_number_re = re.compile(r'\d{2,}(?=$|[A-Z]+$)', re.I)
-# Match two or more digits that are at the end of the string or are followed by
-# one or more letters (local notes) that are at the end of the string.
 
 check_proper_format_re = re.compile(r'\d{4}[A-Z]{2}\d{1,6}$|'
                                     r'\d{2}H\d{2}[A-Z]{2}\d{1,6}$|'
-                                    r'\d{2}\s[A-Z]{2,4}\s\d{1,6}(?:$|\s\d{2}-\d+$)
-                                    r'|[A-Z]{2}\d{2}[A-Z]\d+[A-Z]{2}$', re.I)
+                                    r'\d{2}\s[A-Z]{2,4}\s\d{1,6}(?:$|'
+                                    r'\s\d{2}-\d+$)|[A-Z]{2}\d{2}[A-Z]'
+                                    r'\d+[A-Z]{2}$', re.I)
 # REWRITE patterns
 
 def identify_court_name(docket_number):
@@ -499,8 +496,9 @@ def remove_hyphens_and_spaces(docket_number):
     # two-digit number may be preceded by letter codes. These spaces or hyphens
     # should not be removed.
         try:
-            is_hyphen_space_variation = re.search(r'(?:\d{2,4})(-|s)(?=\d+)',
-                                                  docket_number).group(1)
+            is_hyphen_space_variation = re.search(r'((?<=\d{2})|(?<=\d{4}))-|\s'
+                                                  r'(?=\d+)',
+                                                  docket_number).group()
             # If it is a variation, remove all other punctuations and spaces that
             # should not be there
             if is_hyphen_space_variation == '-':
