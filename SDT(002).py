@@ -1,4 +1,4 @@
-# Smart Docketing Tool (Updated: 9/11, 6PM ET)
+# Smart Docketing Tool (Updated: 9/11, 10PM ET)
 #
 # Note: Juvenile Court not included. 
 #
@@ -114,7 +114,7 @@
 #       · CCYY-(G)N+        Probate and Family Ct. with or without case-group code
 #       · CCTTYY-(G)N+      Probate and Family Ct. with or without case-group code
 #
-#   4.  EXAMPLE, variations in practice:
+#   4.  Example, variations in practice:
 #
 #       In SpineFrontier, Inc. v. Cummings Props. LLC, No. 1577CV00982 (Essex Cty.
 #       Super. Ct.), in that single case, we see six docket-number variations
