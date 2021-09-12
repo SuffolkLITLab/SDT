@@ -1,4 +1,4 @@
-# Smart Docketing Tool (Updated: 9/11, 10:30PM ET)
+# Smart Docketing Tool (002) (Updated 9/11, 12:11AM ET)
 #
 # Note: Juvenile Court not included. 
 #
@@ -110,11 +110,18 @@
 #       · YYCC-N+           ALL
 #       · YYCC-TT-N+ / hCC  Super. Ct., Dist. Ct., BMC / Housing Ct.
 #       · YY-TT-N+          ALL
-#       · YYTTN+            ALL
-#       · CCYY-(G)N+        Probate and Family Ct. with or without case-group code
-#       · CCTTYY-(G)N+      Probate and Family Ct. with or without case-group code
+#       · YYTTN+[*]         ALL
+#       · TTYY-N+[*]        ALL
+#       · CCYY-(G)N+[*]     Probate Family Ct. with or without case-group code
+#       · CCTTYY-(G)N+[*]   Probate Family Ct. with or without case-group code
 #
-#   4.  Example, variations in practice:
+#           [*] I have not seen these variations at least in the superior-court
+#               case filings I've looked at. They are included because they
+#               follow the 'logic' behind the other observed variations; in fact,
+#               the first two hypothetical variations, I have seen in federal
+#               courts.
+#
+#   4.  EXAMPLE, variations in practice:
 #
 #       In SpineFrontier, Inc. v. Cummings Props. LLC, No. 1577CV00982 (Essex Cty.
 #       Super. Ct.), in that single case, we see six docket-number variations
@@ -460,35 +467,26 @@ def remove_hyphens_and_spaces(docket_number):
     for key in land_court_case_type_code_dict:
         if key in docket_number.upper():
             if key == 'SBQ':
-                # Replace two or more spaces with one space, strip, then remove
-                # everything except letters, numbers, spaces, and hyphens, i.e.,
-                # all punctuations other than hyphens, and lastly, find all the
-                # hyphens and return with list
+                # Replace every hyphen except the one between month and seq.
+                # number with a space, for if there are more hyphens than the
+                # one that should be between month and seq. number, they are
+                # most likely where spaces should be for land-court cases 
+                remove_extra_hyphens = re.sub(r'-(?!\d+$)', ' ', docket_number)
                 remove_extra_spaces = re.sub(r'\s{2,}', ' ',
-                                             docket_number).strip()
+                                             remove_extra_hyphens).strip()
+                # Remove everything except letters, numbers, spaces, and hyphens,
+                # i.e., punctuations other than hyphens
                 remove_punctuations = re.sub(r'[^\w\s-]', '', remove_extra_spaces)
-                find_hyphens = re.findall(r'-', remove_punctuations)
-                if len(find_hyphens) > 1:
-                    # If there are more than one hyphen, remove all except the
-                    # hyphen separating month and sequence number
-                    extra_hyphen_removed = re.sub(r'-(?!\d+$)','',
-                                                  remove_punctuations)
-                    clean_dkt_number = extra_hyphen_removed
-                    return clean_dkt_number
-                elif len(find_hyphens) == 1:
-                    clean_dkt_number = remove_punctuations
+                if '-' not in remove_punctuations:
+                # Add the missing hyphen between month and seq. number
+                    add_missing_hyphen = re.sub(r'\s(?=\d+$)', '-',
+                                                remove_punctuations)
+                    clean_dkt_number = add_missing_hyphen
                     return clean_dkt_number
                 else:
-                # The hyphen between month and sequence number is missing in SBQ
-                # docket number, so add
-                add_missing_hyphen = re.sub(r'(?<=\s\d{2})\s(?=\d+$)', '-'
-                                            remove_punctuations)
-                clean_dkt_number = add_missing_hyphen
-                return clean_dkt_number
+                    clean_dkt_number = remove_punctuations
+                    return clean_dkt_number
             else:
-                # For other land-court cases, replace two or more spaces with one,
-                # strip, then remove everything except letters, numbers, and
-                # spaces, i.e., all punctuations
                 remove_extra_spaces = re.sub(r'\s{2,}', ' ',
                                              docket_number).strip()
                 remove_punctuations = re.sub(r'[^\w\s]', '', remove_extra_spaces)
@@ -497,25 +495,29 @@ def remove_hyphens_and_spaces(docket_number):
     else:
     # Otherwise, check first whether the input is a docket-number variation with
     # a hyphen or space that separates numbers. In all these variations, the
-    # preceding digits are 2- or 4-digits. Sometimes, the two-digit number may
-    # be preceded by letter codes. These should not be removed.
+    # numbers preceding a hyphen or a space are 2- or 4-digits. Sometimes, the
+    # two-digit number may be preceded by letter codes. These spaces or hyphens
+    # should not be removed.
         try:
-            is_hyphen_space_variation = re.search(r'(?:\d{2,4}|[A-Z]\d{2})'
-                                                  r'(-|\s)(?=\d+)',
+            is_hyphen_space_variation = re.search(r'(?:\d{2,4})(-|s)(?=\d+)',
                                                   docket_number).group(1)
             # If it is a variation, remove all other punctuations and spaces that
             # should not be there
             if is_hyphen_space_variation == '-':
-                pass # PLACEHOLDER: write pattern for everything but that hyphen
-                     # to remove
+                remove_extra_hyphens = re.sub(r'(?<!\d{2})(?<!\d{4})-', '',
+                                              docket_number)
+                remove_spaces = re.sub(r'\s', '', remove_extra_hyphens).strip()
+                clean_dkt_number = remove_spaces
+                return clean_dkt_number
             else:
-                pass # PLACEHOLDER: write pattern for everything but that space
-                     # to remove
+                remove_extra_spaces = re.sub(r'(?<!\d{2})(?<!\d{4})\s', '',
+                                             docket_number).strip()
+                remove_hyphens = re.sub(r'-', '', remove_extra_spaces)
+                clean_dkt_number = remove_hyphens
+                return clean_dkt_number
+                
         except:
         # If it is not one of those variations, clean up docket number
             remove_non_word_characters = re.sub(r'\W', '', docket_number)
             clean_dkt_number = remove_non_word_characters
             return clean_dkt_number
-
-# For testing:
-# docket_number = input('Enter docket number: ')
