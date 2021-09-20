@@ -1,21 +1,18 @@
-# Smart Docketing Tool (003) (Updated 9/12, 4:30PM ET)
-#
-# Note: Juvenile Court not included. 
-#
-# TO DO:
-#   - Add appellate court docket-number format, incl. supreme court.
-#   - Address local notes
+# Smart Docketing Tool (004)
+# 
+# NOTE: This deals ONLY with standard docket-number input, i.e., no variations.
+# Juvenile Court not included. 
 #
 # DOCKET-NUMBER FORMATS (STANDARD)
 #
-#   1.  Superior Court         Example: 1577CV00982
+#   1.  Superior Court          Example: 1577CV00982
 #
 #       docket_number[0:1] is the case's filing year 
 #       docket_number[2:3] is the court code
 #       docket_number[4:5] is the case-type code
 #       docket_number[6:10] is the 5-digit sequence number
 #
-#   2.  District Court         Example: 1670CV000072
+#   2.  District Court          Example: 1670CV000072
 #
 #       docket_number[0:5] is the same as in the superior-court format.
 #       docket_number[6:11] is the 6-digit sequence number
@@ -44,7 +41,7 @@
 #       docket_number[13:14] is the case's filing month
 #       docket_number[16:] is the sequence number (likely 3 digits)
 #
-#   6.  Probate and Family     Example: ES15A0064AD
+#   6.  Probate and Family      Example: ES15A0064AD
 #
 #       docket_number[0:1] is the site or court code
 #       docket_number[2:3] is the case's filing year
@@ -59,6 +56,24 @@
 #       docket number 'ES00A0000XY' should raise an error, because the docket num-
 #       ber tell us that the case TYPE is 'Proxy Guardianship' ('XY') but that
 #       the case GROUP is 'Adoption' ('A') instead of 'Proxy Guardianship' ('X').
+#
+#   7.  Appeals Court           Example: 2020-P-0874
+#
+#       The Appeals Court hears cases either as a panel ('P') or in a single-
+#       justice session ('J'). The docket-number format is four-digit filing year,
+#       'P' for Panel or 'J' for single justice, then the sequence number, each
+#       separated by hyphens.
+#
+#   8.  Supreme Judicial Court  Example: SJC-13103
+#
+#       The Supreme Judicial Court docket number is its abbreviation ('SJC') and
+#       the sequence number separated by a hyphen. 
+#
+#       NOTE: like the Appeals Court, SJC has single-justice sessions, and those
+#       cases have a unique docket-number format. Example: BD-2021-034.
+#       The format is case-docket type, four-digit filing year, then the sequence
+#       number, each separated by hyphens. The case-docket types are either
+#       single justice ('SJ') or bar docket ('BD').
 #
 # VARIATIONS
 #
@@ -91,27 +106,33 @@
 #                         removed entirely or all but one.
 #
 #       'G'             : 1-letter case-group code, applies only to Probate and
-#                         Family Ct. 
+#                         Family Ct.
+#
+#       'S'             : Who sits, i.e., whether it is single-justice or panel
 #
 #   2.  Standard formats, using above abbreviations:
 #
-#       · YYCCTTN+        Super. Ct., Dist. Ct., BMC
-#       · YYhCCN+         Housing Ct. Below, I'll just add '/ hCC'
-#       · YY TT N+        Land Ct., except SBQ cases
-#       · YY SBQ P+ MM-N+ Land Ct., SBQ cases, P is Plan Number, MM is Month
-#       · CCYYGN+TT       Probate and Family Court, G is case-group code
+#       · YYCCTTN+          Super. Ct., Dist. Ct., BMC
+#       · YYhCCN+           Housing Ct. Below, I'll just add '/ hCC'
+#       · YY TT N+          Land Ct., except SBQ cases
+#       · YY 'SBQ' P+ MM-N+ Land Ct., SBQ cases, P is Plan Number, MM is Month
+#       · CCYYGN+TT         Probate and Family Court, G is case-group code
+#       · YYYY-S-N+         Appeals Court (incl. single-justice)
+#       · 'SJC'-N+          Supreme Judicial Court (excl. single-justice)
+#       · 'SJ'-YYYY-N+      Supreme Judicial Court, single-justice matters
+#       · 'BD'-YYYY-N+      Supreme Judicial Court, single-j. bar-docket matters
 #       
 #   3.  Variations other than standard format:
 #
 #       · YYCC-N+ / hCC     Super. Ct., Dist. Ct., BMC / Housing Ct.
-#       · YYYY-N+           ALL
-#       · YY N+             ALL
-#       · YY-N+             ALL
-#       · YYYY-N+           ALL
+#       · YYYY-N+           ALL trial courts
+#       · YY N+             ALL trial courts
+#       · YY-N+             ALL trial courts
+#       · YYYY-N+           ALL trial courts
 #       · YYCC-TT-N+ / hCC  Super. Ct., Dist. Ct., BMC / Housing Ct.
-#       · YY-TT-N+          ALL
-#       · YYTTN+[*]         ALL
-#       · TTYY-N+[*]        ALL
+#       · YY-TT-N+          ALL trial courts
+#       · YYTTN+[*]         ALL trial courts
+#       · TTYY-N+[*]        ALL trial courts
 #       · TTYYCC-N+[*]      Super. Ct., Dist. Ct., BMC / Housing Ct.
 #       · CCYY-(G)N+[*]     Probate Family Ct. with or without case-group code
 #       · CCTTYY-(G)N+[*]   Probate Family Ct. with or without case-group code
@@ -121,6 +142,8 @@
 #               follow the 'logic' behind the other observed variations; in fact,
 #               the first two hypothetical variations, I have seen in federal
 #               courts.
+#
+#       Note: I have not seen any variations of appellate docket numbers. 
 #
 #   4.  EXAMPLE, variations in practice:
 #
@@ -350,105 +373,112 @@ court_name_code_dict = {
     'WO' : 'Worcester Probate and Family Court',
 }
 
+appellate_court_code_dict = {
+    'P'  : 'Appeals Court',
+    'J'  : 'Appeals Court (Single Justice)',
+    'SJC': 'Supreme Judicial Court',
+    'SJ' : 'Supreme Judicial Court (Single Justice)',
+    'BD' : 'Supreme Judicial Court (Bar Docket)'
+}
+
 import re
 import time
 
-find_court_code_re = re.compile(r'(?<=^\d{2})(\d{2}|H\d{2})(?!$)(?=((?:[A-Z]{2}'
-                                r'(?!$)|-|\s)(?![A-Z]+$)))|^[A-Z]{2}', re.I)
-# This regular-expression pattern does not handle the following variations:
-#   · YYYY-N+           ALL     [Takes YYYY-N+ as YYCC-N+]
-#   · TTYY-N+[*]        ALL     [Takes as CCYY-N+ Probate and Family Ct.]
-#   · TTYYCC-N+[*]      Super. Ct., Dist. Ct., BMC / Housing Ct.
-#   [*] denotes the hypothetical variations
-# Flag is re.IGNORECASE.
+find_court_code_re = re.compile(r'(?<=^\d{2})(\d{2}|H\d{2})(?!-)|^[A-Z]{2}'
+                                r'(?=\d{2})', re.I)
 
-find_case_type_code_re = re.compile(r'(?<!^)[A-Z]{2,4}', re.I)
-# This regular-expression pattern does not handle situations where the case-type
-# code is entered in any format other than 2-letter format
+find_case_type_code_re = re.compile(r'(?<!^)[A-Z]{2,4}(?!-)', re.I)
 
-
-find_case_year_re = re.compile(r'((?<=^)|(?<=[A-Z]{2}))\d{2}(?=\d{2}[A-Z]{2}|'
-                               r'\s|-|[A-Z]+\d|\d{2}(?=\s|-))', re.I)
-# This pattern does not account for YYYY-N+ variation and instead takes that
-# variation as YYCC-N+
+find_case_year_re = re.compile(r'^\d{2}(?=\d{2}[A-Z]|H\d{2})|(?<=^[A-Z]{2})'
+                               r'\d{2}|\d{4}(?=-)', re.I)
 
 find_case_sequence_number_re = re.compile(r'\d{2,}(?=$|[A-Z]+$)', re.I)
 
-check_proper_format_re = re.compile(r'\d{4}[A-Z]{2}\d{1,6}$|'
-                                    r'\d{2}H\d{2}[A-Z]{2}\d{1,6}$|'
-                                    r'\d{2}\s[A-Z]{2,4}\s\d{1,6}(?:$|'
+check_proper_format_re = re.compile(r'^\d{4}[A-Z]{2}\d{1,6}$|'
+                                    r'^\d{2}H\d{2}[A-Z]{2}\d{1,6}$|'
+                                    r'^\d{2}\s[A-Z]{2,4}\s\d{1,6}(?:$|'
                                     r'\s\d{2}-\d+$)|[A-Z]{2}\d{2}[A-Z]'
-                                    r'\d+[A-Z]{2}$', re.I)
-# REWRITE patterns
+                                    r'\d+[A-Z]{2}$|\d{4}-[A-Z]-\d+$|
+                                    r'[A-Z]{2}-\d{4}-\d+$|[A-Z]{3}-\d+$', re.I)
+# NOTE: only standard format
 
 def identify_court_name(docket_number):
     court_code = find_court_code_re.search(docket_number).group()
     if not court_code:
-        # docket_number is missing court code
         for key in land_court_case_type_code_dict:
             if key in docket_number:
                 return 'Land Court'
-                # docket_number is missing court code but court is land court
-                # and land-court docket numbers do not include court codes so the
-                # entered docket_number is still okay
         else:
-            return None
-            # docket_number is missing court code: the entered docket_number is
-            # not okay; this would be where another inquiry and a drop-down menu
-            # or a combo-box would be added later for non-standard variations or
-            # just incorrectly entered docket numbers. As it is now, because
-            # the check_proper_format_re is rigid, this else is unnecessary.
+            for key in appellate_court_code_dict:
+                if key in docket_number:
+                    return appellate_court_code_dict[key]
+            else:
+                return None
+            # docket_number is missing court code
     else:
         if court_code in code_name_code_dict:
             return court_name_code_dict[court_code]
         else:
             return None
-            # docket_number has incorrect (not missing) court code
+            # docket_number has incorrect court code
 
 def identify_case_type(docket_number):
     case_type_code = find_case_type_code_re.search(docket_number).group()
-    if not case_type_code:
-        # docket_number is missing case-type code; input error or variation. As
-        # it is now, because the check_proper_format_re is rigid, this is not
-        # necessary
-        return None
-    else:
-        court_name = identify_court_name(docket_number)
-        if not court_name:
-            return None
-            # docket_number is missing or has incorrect court code. As it is
-            # now, because the check_proper_format_re is rigid, this if not
-            # is unnecessary
+    court_name = identify_court_name(docket_number)
+        if 'Appeals' in court_name:
+            pass
+            # PLACEHOLDER: what should it return for appeals?
+        elif 'Supreme' in court_name:
+            pass
+            # PLACEHOLDER: what should it return for SJC appeals?
         elif 'Probate' in court_name:
             for key in probate_family_court_case_type_code_dict:
                 if key == case_type_code:
                     return probate_family_court_case_type_code_dict[key]
+        # Case-type identification separates Probate and Family Court from other
+        # courts because 'AD' refers to 'Adoption' in Probate and Family Court
+        # while it refers to 'Appeal' in others
         else:
             for key in court_case_type_code_dict:
                 if key == case_type_code:
                     return court_case_type_code_dict[key]
-        
-def identify_year(docket_number):
+            else:
+                return None
+                # docket_number is missing case-type code
+
+# ask argument four or two digit
+
+def identify_year(docket_number, number_of_digits_wanted = '4'):
     case_year = find_case_year_re.search(docket_number).group()
-    if 'SBQ' in docket_number.upper():
-        # .upper() redundant if in input.upper()
-        pass # PLACEHOLDER for identifying month and returning month, year
+    if len(case_year) == 4:
+        if case_year > time.strftime('%Y'):
+            pass
+            # PLACEHOLDER for error where the docket_number is dated in the
+            # the future
+        else:
+            if number_of_digits_wanted == '4':
+                return case_year
+            else:
+                return case_year[2:]
     else:
         if not case_year:
             return None
             # docket_number is missing year
         else:
-            if case_year <= time.strftime('%y'):
-                return time.strftime('%Y')[:2] + case_year
+            if case_year > time.strftime('%y'):
+                pass
+                # PLACEHOLDER, see above
             else:
-                pass # PLACEHOLDER for if identifed year is in the future
+                if number_of_digits_wanted == '4':
+                    return time.strftime('%Y')[:2] + case_year
+                else:
+                    return case_year
 
 def identify_case_sequence_number(docket_number):
     sequence_number = find_case_sequence_number_re.search(docket_number).group()
     if not sequence_number:
         return None
-        # docket_number is missing sequence number. As it is now, because
-        # check_proper_format_re is rigid, this is unnecessary.
+        # docket_number is missing sequence number.
     else:
         return sequence_number
 
@@ -457,65 +487,3 @@ def is_it_in_proper_format(clean_dkt_number):
         return True
     else:
         return False
-
-def remove_hyphens_and_spaces(docket_number):
-    # First, check if the entered docket number is a land-court docket number,
-    # which should have spaces and, in SBQ, a hyphen.
-    for key in land_court_case_type_code_dict:
-        if key in docket_number.upper():
-            if key == 'SBQ':
-                # Replace every hyphen except the one between month and seq.
-                # number with a space, for if there are more hyphens than the
-                # one that should be between month and seq. number, they are
-                # most likely where spaces should be for land-court cases 
-                remove_extra_hyphens = re.sub(r'-(?!\d+$)', ' ', docket_number)
-                remove_extra_spaces = re.sub(r'\s{2,}', ' ',
-                                             remove_extra_hyphens).strip()
-                # Remove everything except letters, numbers, spaces, and hyphens,
-                # i.e., punctuations other than hyphens
-                remove_punctuations = re.sub(r'[^\w\s-]', '', remove_extra_spaces)
-                if '-' not in remove_punctuations:
-                # Add the missing hyphen between month and seq. number
-                    add_missing_hyphen = re.sub(r'\s(?=\d+$)', '-',
-                                                remove_punctuations)
-                    clean_dkt_number = add_missing_hyphen
-                    return clean_dkt_number
-                else:
-                    clean_dkt_number = remove_punctuations
-                    return clean_dkt_number
-            else:
-                remove_extra_spaces = re.sub(r'\s{2,}', ' ',
-                                             docket_number).strip()
-                remove_punctuations = re.sub(r'[^\w\s]', '', remove_extra_spaces)
-                clean_dkt_number = remove_punctuations
-                return clean_dkt_number
-    else:
-    # Otherwise, check first whether the input is a docket-number variation with
-    # a hyphen or space that separates numbers. In all these variations, the
-    # numbers preceding a hyphen or a space are 2- or 4-digits. Sometimes, the
-    # two-digit number may be preceded by letter codes. These spaces or hyphens
-    # should not be removed.
-        try:
-            is_hyphen_space_variation = re.search(r'((?<=\d{2})|(?<=\d{4}))-|\s'
-                                                  r'(?=\d+)',
-                                                  docket_number).group()
-            # If it is a variation, remove all other punctuations and spaces that
-            # should not be there
-            if is_hyphen_space_variation == '-':
-                remove_extra_hyphens = re.sub(r'(?<!\d{2})(?<!\d{4})-', '',
-                                              docket_number)
-                remove_spaces = re.sub(r'\s', '', remove_extra_hyphens).strip()
-                clean_dkt_number = remove_spaces
-                return clean_dkt_number
-            else:
-                remove_extra_spaces = re.sub(r'(?<!\d{2})(?<!\d{4})\s', '',
-                                             docket_number).strip()
-                remove_hyphens = re.sub(r'-', '', remove_extra_spaces)
-                clean_dkt_number = remove_hyphens
-                return clean_dkt_number
-                
-        except:
-        # If it is not one of those variations, clean up docket number
-            remove_non_word_characters = re.sub(r'\W', '', docket_number)
-            clean_dkt_number = remove_non_word_characters
-            return clean_dkt_number
