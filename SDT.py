@@ -1,4 +1,4 @@
-# Smart Docketing Tool (004)
+# Smart Docketing Tool
 # 
 # NOTE: This deals ONLY with standard docket-number input, i.e., no variations.
 # Juvenile Court not included. 
@@ -67,13 +67,13 @@
 #   8.  Supreme Judicial Court  Example: SJC-13103
 #
 #       The Supreme Judicial Court docket number is its abbreviation ('SJC') and
-#       the sequence number separated by a hyphen. 
+#       the sequence number separated by a hyphen. No year!
 #
 #       NOTE: like the Appeals Court, SJC has single-justice sessions, and those
 #       cases have a unique docket-number format. Example: BD-2021-034.
-#       The format is case-docket type, four-digit filing year, then the sequence
-#       number, each separated by hyphens. The case-docket types are either
-#       single justice ('SJ') or bar docket ('BD').
+#       The format is case-docket type, four-digit filing year (!), then the
+#       sequence number, each separated by hyphens. The case-docket types are
+#       either single justice ('SJ') or bar docket ('BD').
 #
 # VARIATIONS
 #
@@ -125,14 +125,14 @@
 #   3.  Variations other than standard format:
 #
 #       · YYCC-N+ / hCC     Super. Ct., Dist. Ct., BMC / Housing Ct.
-#       · YYYY-N+           ALL trial courts
-#       · YY N+             ALL trial courts
-#       · YY-N+             ALL trial courts
-#       · YYYY-N+           ALL trial courts
+#       · YYYY-N+           All trial courts
+#       · YY N+             All trial courts
+#       · YY-N+             All trial courts
+#       · YYYY-N+           All trial courts
 #       · YYCC-TT-N+ / hCC  Super. Ct., Dist. Ct., BMC / Housing Ct.
-#       · YY-TT-N+          ALL trial courts
-#       · YYTTN+[*]         ALL trial courts
-#       · TTYY-N+[*]        ALL trial courts
+#       · YY-TT-N+          All trial courts
+#       · YYTTN+[*]         All trial courts
+#       · TTYY-N+[*]        All trial courts
 #       · TTYYCC-N+[*]      Super. Ct., Dist. Ct., BMC / Housing Ct.
 #       · CCYY-(G)N+[*]     Probate Family Ct. with or without case-group code
 #       · CCTTYY-(G)N+[*]   Probate Family Ct. with or without case-group code
@@ -149,7 +149,8 @@
 #
 #       In SpineFrontier, Inc. v. Cummings Props. LLC, No. 1577CV00982 (Essex Cty.
 #       Super. Ct.), in that single case, we see six docket-number variations
-#       being used:
+#       being used, so we should not assume that the pro se users will (only)
+#       have the docket number in the standard format:
 #
 #           (1) 1577-CV-00982   in the defendant's motion
 #           (2) 15-0982         in the defendant's amended counterclaim
@@ -182,8 +183,8 @@
 #
 # ONLINE CASE ACCESS
 #
-#   Case information and sometimes (rarely, it seems) uploaded PDFs of case
-#   filings can be found at masscourts.org.
+#   Case information and sometimes uploaded PDFs of case filings can be found at
+#   masscourts.org.
 #
 #   Notably (and oddly), the search engine will return with "No Matches Found"
 #   if the docket number is not strictly entered in the standardized format,
@@ -193,10 +194,10 @@
 #
 #   The 'AD' case-type code in BMC and district courts refers to 'Appeal' but
 #   'Adoption' in probate and family courts. Because of dict key restrictions,
-#   the case-type codes for probate and family courts are in a separate dictionary.
-#   Land court case-type codes are also in their own dictionary for checking if
+#   the case-type codes for Probate and Family Courts are in a separate dictionary.
+#   Land Court case-type codes are also in their own dictionary for checking if
 #   the docket number is erroneously missing a court code or if the court code
-#   is missing because it is a case in the land court.
+#   is missing because it is a case in Land Court.
 
 court_case_type_code_dict = {
     'AC' : 'Application for Criminal Complaint',
@@ -221,7 +222,8 @@ court_case_type_code_dict = {
     'TL' : 'Tax Lien',
     'REG': 'Registration',
     'SBQ': 'Subsequent',
-    'MISC': 'Miscellaneous'
+    'MISC': 'Miscellaneous',
+    'XYZ': 'Appellate' # MADE-UP CODE / PLACHOLDER
 }
 
 land_court_case_type_code_dict = {
@@ -383,24 +385,31 @@ appellate_court_code_dict = {
 
 import re
 import time
+from collections import namedtuple
 
 find_court_code_re = re.compile(r'(?<=^\d{2})(\d{2}|H\d{2})(?!-)|^[A-Z]{2}'
                                 r'(?=\d{2})', re.I)
 
 find_case_type_code_re = re.compile(r'(?<!^)[A-Z]{2,4}(?!-)', re.I)
 
-find_case_year_re = re.compile(r'^\d{2}(?=\d{2}[A-Z]|H\d{2})|(?<=^[A-Z]{2})'
-                               r'\d{2}|\d{4}(?=-)', re.I)
+find_year_re = re.compile(r'^\d{2}(?=\d{2}[A-Z]|H|\s)|(?<=^[A-Z]{2})\d{2}|'
+                          r'\d{4}(?=-)', re.I)
 
-find_case_sequence_number_re = re.compile(r'\d{2,}(?=$|[A-Z]+$)', re.I)
+find_sequence_number_re = re.compile(r'\d{2,}(?=$|[A-Z]+$)', re.I)
 
 check_proper_format_re = re.compile(r'^\d{4}[A-Z]{2}\d{1,6}$|'
+                                    # BMC, Dist. Ct., Super. Ct.
                                     r'^\d{2}H\d{2}[A-Z]{2}\d{1,6}$|'
+                                    # Housing Court
                                     r'^\d{2}\s[A-Z]{2,4}\s\d{1,6}(?:$|'
-                                    r'\s\d{2}-\d+$)|[A-Z]{2}\d{2}[A-Z]'
-                                    r'\d+[A-Z]{2}$|\d{4}-[A-Z]-\d+$|
-                                    r'[A-Z]{2}-\d{4}-\d+$|[A-Z]{3}-\d+$', re.I)
-# NOTE: only standard format
+                                    r'\s\d{2}-\d+$)|'
+                                    # Land Court
+                                    r'^[A-Z]{2}\d{2}[A-Z]\d+[A-Z]{2}$|'
+                                    # Probate and Family Court
+                                    r'^\d{4}-(J|P)-\d+$|'
+                                    # Appeals Court
+                                    r'^(BD|SJ)-\d{4}-\d+$|^SJC-\d+$', re.I)
+                                    # Supreme Judicial Court
 
 def identify_court_name(docket_number):
     court_code = find_court_code_re.search(docket_number).group()
@@ -414,76 +423,81 @@ def identify_court_name(docket_number):
                     return appellate_court_code_dict[key]
             else:
                 return None
-            # docket_number is missing court code
+                # The docket number is missing court code. Currently, because
+                # the initial check_proper_format check excludes docket numbers
+                # missing court codes (or at least what appears to be court
+                # codes), this part is superfluous but won't be once the code
+                # is edited to address variations, which might not include
+                # court codes.
     else:
-        if court_code in code_name_code_dict:
+        if court_code in court_name_code_dict:
             return court_name_code_dict[court_code]
         else:
-            return None
-            # docket_number has incorrect court code
+            raise Exception
+            # The docket number has incorrect (nonexistent) court code.
 
 def identify_case_type(docket_number):
     case_type_code = find_case_type_code_re.search(docket_number).group()
     court_name = identify_court_name(docket_number)
-        if 'Appeals' in court_name:
-            pass
-            # PLACEHOLDER: what should it return for appeals?
-        elif 'Supreme' in court_name:
-            pass
-            # PLACEHOLDER: what should it return for SJC appeals?
-        elif 'Probate' in court_name:
+    if not case_type_code:
+        if 'Appeals' in court_name or 'Supreme' in court_name:
+            return court_case_type_code_dict['XYZ']
+            # This returns 'Appellate' with a made-up case-type code. Without
+            # the docket number for the case in the lower court, we cannot
+            # discern the case type. Also, a made-up code is used here instead
+            # of 'AD' ('Appeal') because 'AD' is a case-type code for TRIAL,
+            # rather than appellate, courts.
+        return None
+        # The docket number is missing case-type code. See above comment in
+        # identify_court_name function re check_proper_format and variations.
+    else:
+        if 'Probate' in court_name:
             for key in probate_family_court_case_type_code_dict:
                 if key == case_type_code:
                     return probate_family_court_case_type_code_dict[key]
         # Case-type identification separates Probate and Family Court from other
         # courts because 'AD' refers to 'Adoption' in Probate and Family Court
-        # while it refers to 'Appeal' in others
+        # while it refers to 'Appeal' in others.
         else:
             for key in court_case_type_code_dict:
                 if key == case_type_code:
                     return court_case_type_code_dict[key]
             else:
-                return None
-                # docket_number is missing case-type code
+                raise Exception
+                # The docket number has incorrect (nonexistent) case-type code.
 
-# ask argument four or two digit
-
-def identify_year(docket_number, number_of_digits_wanted = '4'):
-    case_year = find_case_year_re.search(docket_number).group()
-    if len(case_year) == 4:
-        if case_year > time.strftime('%Y'):
-            pass
-            # PLACEHOLDER for error where the docket_number is dated in the
-            # the future
+def identify_year(docket_number):
+    case_year = find_year_re.search(docket_number).group()
+    if not case_year:
+        return None
+        # Remember: except for panel SJC docket numbers, ALL others, incl.
+        # variations, include the year.
+    else:
+        if case_year[-2:] > time.strftime('%y'):
+            raise Exception
+            # The docket number has incorrect year: it refers to a case that has
+            # not yet been filed, i.e., a case that does not exist.
         else:
-            if number_of_digits_wanted == '4':
+            if len(case_year) == 4:
                 return case_year
             else:
-                return case_year[2:]
-    else:
-        if not case_year:
-            return None
-            # docket_number is missing year
-        else:
-            if case_year > time.strftime('%y'):
-                pass
-                # PLACEHOLDER, see above
-            else:
-                if number_of_digits_wanted == '4':
-                    return time.strftime('%Y')[:2] + case_year
-                else:
-                    return case_year
+                return time.strftime('%Y')[:2] + case_year
 
-def identify_case_sequence_number(docket_number):
-    sequence_number = find_case_sequence_number_re.search(docket_number).group()
-    if not sequence_number:
-        return None
-        # docket_number is missing sequence number.
-    else:
-        return sequence_number
+def identify_sequence_number(docket_number):
+    return find_sequence_number_re.search(docket_number).group()
 
-def is_it_in_proper_format(clean_dkt_number):
-    if check_proper_format_re.match(clean_dkt_number):
-        return True
-    else:
-        return False
+# DRAFT:
+# def get_case_info(docket_number):
+#    case_info = namedtuple('Case_Information', ['Court', 'Type',
+#                                                'Year', 'Number'])
+#    if check_proper_format_re.match(docket_number):
+#        try:
+#            a = identify_court_name(docket_number)
+#            b = identify_case_type(docket_number)
+#            c = identify_year(docket_number)
+#            d = identify_sequence_number(docket_number)
+#            print(case_info(a, b, c, d))
+#        except:
+#            print('Not proper format (1)')
+#    else:
+#        print('Not proper format (2)')
