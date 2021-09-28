@@ -222,8 +222,7 @@ court_case_type_code_dict = {
     'TL' : 'Tax Lien',
     'REG': 'Registration',
     'SBQ': 'Subsequent',
-    'MISC': 'Miscellaneous',
-    'XYZ': 'Appellate' # MADE-UP CODE / PLACHOLDER
+    'MISC': 'Miscellaneous'
 }
 
 land_court_case_type_code_dict = {
@@ -441,11 +440,10 @@ def identify_case_type(docket_number):
     court_name = identify_court_name(docket_number)
     if not case_type_code:
         if 'Appeals' in court_name or 'Supreme' in court_name:
-            return court_case_type_code_dict['XYZ']
-            # This returns 'Appellate' with a made-up case-type code. Without
-            # the docket number for the case in the lower court, we cannot
-            # discern the case type. Also, a made-up code is used here instead
-            # of 'AD' ('Appeal') because 'AD' is a case-type code for TRIAL,
+            return 'Appellate'
+            # Without the docket number for the case in the lower court, we
+            # cannot discern the case type. Not using the case-type code 'AD'
+            # ('Appeal') here because 'AD' is a case-type code for trial,
             # rather than appellate, courts.
         return None
         # The docket number is missing case-type code. See above comment in
